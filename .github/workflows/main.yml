@@ -1,10 +1,16 @@
-name: Upload
+name: Download & Upload Videos
 
 on:
   workflow_dispatch:
 
+  schedule:
+    - cron: "0 */6 * * *"   # alle 6 Stunden
+
+permissions:
+  contents: write
+
 jobs:
-  upload:
+  run:
     runs-on: ubuntu-latest
 
     steps:
@@ -14,10 +20,24 @@ jobs:
         with:
           python-version: "3.12"
 
-      - run: sudo apt-get update
-      - run: sudo apt-get install -y ffmpeg
+      - name: Install dependencies
+        run: |
+          pip install requests internetarchive
 
-      - run: pip install -r requirements.txt
-      - run: pip install -r requests
+      - name: Ensure ffmpeg exists
+        run: ffmpeg -version
 
-      - run: python main.py
+      - name: Run script
+        run: python download.py
+
+      - name: Commit processed.json
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+
+          git add processed.json
+
+          git diff --cached --quiet || (
+            git commit -m "Update processed videos"
+            git push
+          )
