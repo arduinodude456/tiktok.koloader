@@ -149,7 +149,7 @@ for video in videos:
             "title": str(video["id"]),
             "creator": "KOReader TikTok Plugin",
             "mediatype": "data",
-            "collection": "tiktokplugin_7",
+            "collection": "tiktokplugin_6",
             "description": "RAW grayscale animation"
         },
         access_key=ARCHIVE_ACCESS_KEY,
