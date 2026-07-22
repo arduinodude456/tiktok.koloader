@@ -10,7 +10,7 @@ from internetarchive import upload
 # Einstellungen
 # ==========================================================
 
-PEXELS_API_KEY = os.getenv("PEXELS_API_KEY")
+PEXELS_API_KEY = "HF7bMRFjADAiArFbahcgaNLUe2K4tmQGsxS0fxOGDW6qiElXp1fNNUAV"
 
 ARCHIVE_ACCESS_KEY = "um2WW5X4LJXNVonC"
 ARCHIVE_SECRET_KEY = "iZSXeThzw17GU1HQ"
