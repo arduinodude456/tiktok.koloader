@@ -12,8 +12,8 @@ from internetarchive import upload
 
 PEXELS_API_KEY = os.getenv("PEXELS_API_KEY")
 
-ARCHIVE_ACCESS_KEY = os.getenv("IA_ACCESS_KEY")
-ARCHIVE_SECRET_KEY = os.getenv("IA_SECRET_KEY")
+ARCHIVE_ACCESS_KEY = "um2WW5X4LJXNVonC"
+ARCHIVE_SECRET_KEY = "iZSXeThzw17GU1HQ"
 
 SUCHBEGRIFF = "nature"
 ANZAHL = 5
