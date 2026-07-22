@@ -63,7 +63,7 @@ for video in VIDEOS.glob("*.mp4"):
         metadata={
             "title": video.stem,
             "mediatype": "data",
-            "collection": "opensource",
+            "collection": "tiktokplugin_7",
             "creator": "KOReader TikTok Plugin",
             "description": "RAW grayscale animation"
         },
