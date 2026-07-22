@@ -132,13 +132,27 @@ for video in videos:
         mp4
     )
 
-    raw = OUTPUT / f"{video['id']}.raw"
+    # nächste freie Nummer finden
+    nummern = [
+        int(f.stem)
+        for f in OUTPUT.glob("*.raw")
+        if f.stem.isdigit()
+    ]
+    
+    if nummern:
+        nummer = max(nummern) + 1
+    else:
+        nummer = 1
+    
+    raw = OUTPUT / f"{nummer}.raw"
+    
+    identifier = f"koreader-{nummer}"
 
     print("Konvertiere:", raw.name)
 
     convert(mp4, raw)
 
-    identifier = f"koreader-{video['id']}"
+  
 
     print("Upload:", identifier)
 
@@ -149,7 +163,7 @@ for video in videos:
             "title": str(video["id"]),
             "creator": "KOReader TikTok Plugin",
             "mediatype": "data",
-            "collection": "tiktokplugin_6",
+            "collection": "opensource",
             "description": "RAW grayscale animation"
         },
         access_key=ARCHIVE_ACCESS_KEY,
