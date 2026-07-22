@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+import random as r
 from pathlib import Path
 
 import requests
@@ -14,8 +15,8 @@ PEXELS_API_KEY = "HF7bMRFjADAiArFbahcgaNLUe2K4tmQGsxS0fxOGDW6qiElXp1fNNUAV"
 
 ARCHIVE_ACCESS_KEY = "um2WW5X4LJXNVonC"
 ARCHIVE_SECRET_KEY = "iZSXeThzw17GU1HQ"
-
-SUCHBEGRIFF = "cat"
+begriffe=["tiny house","food","deco","tiny house"]
+SUCHBEGRIFF = "tiny house"
 ANZAHL = 500
 
 WIDTH = 800
@@ -47,11 +48,12 @@ else:
 # ==========================================================
 
 def suche_videos(query, per_page):
+    
     response = requests.get(
         "https://api.pexels.com/videos/search",
         headers=HEADERS,
         params={
-            "query": query,
+            "query": query[0],
             "per_page": per_page
         }
     )
@@ -101,7 +103,7 @@ def convert(input_file, output_file):
 # Hauptprogramm
 # ==========================================================
 
-videos = suche_videos(SUCHBEGRIFF, ANZAHL)
+videos = suche_videos(begriffe, ANZAHL)
 
 for video in videos:
 
