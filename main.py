@@ -13,8 +13,8 @@ VIDEOS = Path("videos")
 OUTPUT = Path("output")
 DATABASE = Path("processed.json")
 
-ARCHIVE_ACCESS_KEY = os.environ["IA_ACCESS_KEY"]
-ARCHIVE_SECRET_KEY = os.environ["IA_SECRET_KEY"]
+ARCHIVE_ACCESS_KEY = "um2WW5X4LJXNVonC"
+ARCHIVE_SECRET_KEY = "iZSXeThzw17GU1HQ"
 
 OUTPUT.mkdir(exist_ok=True)
 
