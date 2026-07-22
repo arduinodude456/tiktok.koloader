@@ -157,29 +157,32 @@ for video in videos:
   
 
     print("Upload:", identifier)
-    try:
-        upload(
-            identifier,
-            files=[str(raw)],
-            metadata={
-                "title": str(video["id"]),
-                "creator": "KOReader TikTok Plugin",
-                "mediatype": "data",
-                "collection": "opensource",
-                "description": "RAW grayscale animation"
-            },
-            access_key=ARCHIVE_ACCESS_KEY,
-            secret_key=ARCHIVE_SECRET_KEY
-        )
-
-        processed.add(filename)
-
-        DATABASE.write_text(
-            json.dumps(
-                sorted(processed),
-                indent=4
+    working = False
+    while not working:
+        try:
+            upload(
+                identifier,
+                files=[str(raw)],
+                metadata={
+                    "title": str(video["id"]),
+                    "creator": "KOReader TikTok Plugin",
+                    "mediatype": "data",
+                    "collection": "opensource",
+                    "description": "RAW grayscale animation"
+                },
+                access_key=ARCHIVE_ACCESS_KEY,
+                secret_key=ARCHIVE_SECRET_KEY
             )
-        )
-    except:
-        pass
+
+            processed.add(filename)
+
+            DATABASE.write_text(
+                json.dumps(
+                    sorted(processed),
+                    indent=4
+                )
+            )
+            working = True
+        except:
+            pass
 print("Fertig.")
