@@ -1,30 +1,61 @@
+import json
 import os
-import requests
+import subprocess
+from pathlib import Path
 
-# ==========================
+import requests
+from internetarchive import upload
+
+# ==========================================================
 # Einstellungen
-# ==========================
-API_KEY = "DEIN_PEXELS_API_KEY"
+# ==========================================================
+
+PEXELS_API_KEY = os.getenv("PEXELS_API_KEY")
+
+ARCHIVE_ACCESS_KEY = os.getenv("IA_ACCESS_KEY")
+ARCHIVE_SECRET_KEY = os.getenv("IA_SECRET_KEY")
+
 SUCHBEGRIFF = "nature"
 ANZAHL = 5
-DOWNLOAD_ORDNER = "downloads"
 
-os.makedirs(DOWNLOAD_ORDNER, exist_ok=True)
+WIDTH = 800
+HEIGHT = 600
+FPS = 10
+
+DOWNLOADS = Path("videos")
+OUTPUT = Path("output")
+DATABASE = Path("processed.json")
+
+DOWNLOADS.mkdir(exist_ok=True)
+OUTPUT.mkdir(exist_ok=True)
 
 HEADERS = {
-    "Authorization": API_KEY
+    "Authorization": PEXELS_API_KEY
 }
 
+# ==========================================================
+# Bereits verarbeitete Videos laden
+# ==========================================================
 
-def suche_videos(query, per_page=5):
-    url = "https://api.pexels.com/videos/search"
+if DATABASE.exists():
+    processed = set(json.loads(DATABASE.read_text()))
+else:
+    processed = set()
 
-    params = {
-        "query": query,
-        "per_page": per_page
-    }
+# ==========================================================
+# Pexels
+# ==========================================================
 
-    response = requests.get(url, headers=HEADERS, params=params)
+def suche_videos(query, per_page):
+    response = requests.get(
+        "https://api.pexels.com/videos/search",
+        headers=HEADERS,
+        params={
+            "query": query,
+            "per_page": per_page
+        }
+    )
+
     response.raise_for_status()
 
     return response.json()["videos"]
@@ -32,48 +63,106 @@ def suche_videos(query, per_page=5):
 
 def ist_916(width, height, toleranz=0.08):
     ratio = width / height
-    ziel = 9 / 16
-    return abs(ratio - ziel) <= toleranz
+    return abs(ratio - (9 / 16)) <= toleranz
 
 
-def lade_video(video_url, dateiname):
-    r = requests.get(video_url, stream=True)
+def lade_video(url, ziel):
+    r = requests.get(url, stream=True)
     r.raise_for_status()
 
-    with open(dateiname, "wb") as f:
+    with open(ziel, "wb") as f:
         for chunk in r.iter_content(1024 * 1024):
             if chunk:
                 f.write(chunk)
 
+# ==========================================================
+# FFmpeg
+# ==========================================================
+
+def convert(input_file, output_file):
+
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-i",
+        str(input_file),
+        "-vf",
+        f"scale={WIDTH}:{HEIGHT},fps={FPS},format=gray",
+        "-f",
+        "rawvideo",
+        "-pix_fmt",
+        "gray",
+        str(output_file)
+    ]
+
+    subprocess.run(cmd, check=True)
+
+# ==========================================================
+# Hauptprogramm
+# ==========================================================
 
 videos = suche_videos(SUCHBEGRIFF, ANZAHL)
 
-gefunden = False
-
 for video in videos:
+
+    filename = f'{video["id"]}.mp4'
+
+    if filename in processed:
+        print(filename, "bereits verarbeitet.")
+        continue
 
     passende_datei = None
 
-    # Suche nach einer Videodatei im 9:16-Format
     for file in video["video_files"]:
-        w = file["width"]
-        h = file["height"]
 
-        if ist_916(w, h):
+        if ist_916(file["width"], file["height"]):
             passende_datei = file
             break
 
-    if passende_datei:
-        url = passende_datei["link"]
+    if passende_datei is None:
+        print("Kein 9:16-Video:", video["id"])
+        continue
 
-        ausgabe = os.path.join(
-            DOWNLOAD_ORDNER,
-            f'{video["id"]}.mp4'
+    mp4 = DOWNLOADS / filename
+
+    print("Download:", filename)
+
+    lade_video(
+        passende_datei["link"],
+        mp4
+    )
+
+    raw = OUTPUT / f"{video['id']}.raw"
+
+    print("Konvertiere:", raw.name)
+
+    convert(mp4, raw)
+
+    identifier = f"koreader-{video['id']}"
+
+    print("Upload:", identifier)
+
+    upload(
+        identifier,
+        files=[str(raw)],
+        metadata={
+            "title": str(video["id"]),
+            "creator": "KOReader TikTok Plugin",
+            "mediatype": "data",
+            "collection": "tiktokplugin_7",
+            "description": "RAW grayscale animation"
+        },
+        access_key=ARCHIVE_ACCESS_KEY,
+        secret_key=ARCHIVE_SECRET_KEY
+    )
+
+    processed.add(filename)
+
+    DATABASE.write_text(
+        json.dumps(
+            sorted(processed),
+            indent=4
         )
+    )
 
-        print("Lade herunter:", ausgabe)
-        lade_video(url, ausgabe)
-        gefunden = True
-
-if not gefunden:
-    print("Keine 9:16-Videos gefunden.")
+print("Fertig.")
