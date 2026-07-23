@@ -48,12 +48,12 @@ else:
 # ==========================================================
 
 def suche_videos(query, per_page):
-    
+
     response = requests.get(
         "https://api.pexels.com/videos/search",
         headers=HEADERS,
         params={
-            "query": query[0],
+            "query": query,
             "per_page": per_page
         }
     )
@@ -98,14 +98,26 @@ def convert(input_file, output_file):
     ]
 
     subprocess.run(cmd, check=True)
-
 # ==========================================================
 # Hauptprogramm
 # ==========================================================
 
-videos = suche_videos(begriffe, ANZAHL)
+for _ in range(ANZAHL):
 
-for video in videos:
+    suchbegriff = r.choice(begriffe)
+    print(f"\nSuche nach: {suchbegriff}")
+
+    try:
+        videos = suche_videos(suchbegriff, 1)
+    except Exception as e:
+        print("Fehler bei der Suche:", e)
+        continue
+
+    if not videos:
+        print("Keine Videos gefunden.")
+        continue
+
+    video = videos[0]
 
     filename = f'{video["id"]}.mp4'
 
@@ -116,7 +128,6 @@ for video in videos:
     passende_datei = None
 
     for file in video["video_files"]:
-
         if ist_916(file["width"], file["height"]):
             passende_datei = file
             break
@@ -129,10 +140,14 @@ for video in videos:
 
     print("Download:", filename)
 
-    lade_video(
-        passende_datei["link"],
-        mp4
-    )
+    try:
+        lade_video(
+            passende_datei["link"],
+            mp4
+        )
+    except Exception as e:
+        print("Download fehlgeschlagen:", e)
+        continue
 
     # nächste freie Nummer finden
     nummern = [
@@ -140,23 +155,22 @@ for video in videos:
         for f in OUTPUT.glob("*.raw")
         if f.stem.isdigit()
     ]
-    
-    if nummern:
-        nummer = max(nummern) + 1
-    else:
-        nummer = 1
-    
+
+    nummer = max(nummern) + 1 if nummern else 1
+
     raw = OUTPUT / f"{nummer}.raw"
-    
     identifier = f"koreader-{nummer}"
 
     print("Konvertiere:", raw.name)
 
-    convert(mp4, raw)
-
-  
+    try:
+        convert(mp4, raw)
+    except Exception as e:
+        print("Konvertierung fehlgeschlagen:", e)
+        continue
 
     print("Upload:", identifier)
+
     working = False
     while not working:
         try:
@@ -182,7 +196,10 @@ for video in videos:
                     indent=4
                 )
             )
+
             working = True
-        except:
-            pass
+
+        except Exception as e:
+            print("Upload fehlgeschlagen, neuer Versuch:", e)
+
 print("Fertig.")
