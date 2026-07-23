@@ -108,7 +108,7 @@ for _ in range(ANZAHL):
     print(f"\nSuche nach: {suchbegriff}")
 
     try:
-        videos = suche_videos(suchbegriff, 1)
+        videos = suche_videos(suchbegriff, 30)
     except Exception as e:
         print("Fehler bei der Suche:", e)
         continue
@@ -117,23 +117,30 @@ for _ in range(ANZAHL):
         print("Keine Videos gefunden.")
         continue
 
-    video = videos[0]
+    video = None
+    passende_datei = None
+
+    # Erstes passendes 9:16 Video suchen
+    for kandidat in videos:
+
+        for file in kandidat["video_files"]:
+
+            if ist_916(file["width"], file["height"]):
+                video = kandidat
+                passende_datei = file
+                break
+
+        if passende_datei is not None:
+            break
+
+    if passende_datei is None:
+        print(f"Kein 9:16-Video gefunden für: {suchbegriff}")
+        continue
 
     filename = f'{video["id"]}.mp4'
 
     if filename in processed:
         print(filename, "bereits verarbeitet.")
-        continue
-
-    passende_datei = None
-
-    for file in video["video_files"]:
-        if ist_916(file["width"], file["height"]):
-            passende_datei = file
-            break
-
-    if passende_datei is None:
-        print("Kein 9:16-Video:", video["id"])
         continue
 
     mp4 = DOWNLOADS / filename
@@ -145,9 +152,11 @@ for _ in range(ANZAHL):
             passende_datei["link"],
             mp4
         )
+
     except Exception as e:
         print("Download fehlgeschlagen:", e)
         continue
+
 
     # nächste freie Nummer finden
     nummern = [
@@ -159,21 +168,28 @@ for _ in range(ANZAHL):
     nummer = max(nummern) + 1 if nummern else 1
 
     raw = OUTPUT / f"{nummer}.raw"
+
     identifier = f"koreader-{nummer}"
+
 
     print("Konvertiere:", raw.name)
 
     try:
         convert(mp4, raw)
+
     except Exception as e:
         print("Konvertierung fehlgeschlagen:", e)
         continue
 
+
     print("Upload:", identifier)
 
     working = False
+
     while not working:
+
         try:
+
             upload(
                 identifier,
                 files=[str(raw)],
@@ -182,11 +198,12 @@ for _ in range(ANZAHL):
                     "creator": "KOReader TikTok Plugin",
                     "mediatype": "data",
                     "collection": "opensource",
-                    "description": "RAW grayscale animation"
+                    "description": f"RAW grayscale animation - {suchbegriff}"
                 },
                 access_key=ARCHIVE_ACCESS_KEY,
                 secret_key=ARCHIVE_SECRET_KEY
             )
+
 
             processed.add(filename)
 
@@ -199,7 +216,11 @@ for _ in range(ANZAHL):
 
             working = True
 
-        except Exception as e:
-            print("Upload fehlgeschlagen, neuer Versuch:", e)
 
+        except Exception as e:
+
+            print("Upload fehlgeschlagen:", e)
+
+
+print("Fertig.")
 print("Fertig.")
