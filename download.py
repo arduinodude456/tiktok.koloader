@@ -102,50 +102,66 @@ def convert(input_file, output_file):
 # Hauptprogramm
 # ==========================================================
 
-for _ in range(ANZAHL):
+erfolgreich = 0
+
+while erfolgreich < ANZAHL:
 
     suchbegriff = r.choice(begriffe)
     print(f"\nSuche nach: {suchbegriff}")
 
     try:
         videos = suche_videos(suchbegriff, 30)
+
     except Exception as e:
         print("Fehler bei der Suche:", e)
         continue
 
+
     if not videos:
-        print("Keine Videos gefunden.")
         continue
+
+
+    # zufälliges Video aus den Treffern wählen
+    r.shuffle(videos)
 
     video = None
     passende_datei = None
 
-    # Erstes passendes 9:16 Video suchen
+
     for kandidat in videos:
+
+        filename_test = f'{kandidat["id"]}.mp4'
+
+        # bereits verarbeitet überspringen
+        if filename_test in processed:
+            continue
+
 
         for file in kandidat["video_files"]:
 
             if ist_916(file["width"], file["height"]):
+
                 video = kandidat
                 passende_datei = file
                 break
 
-        if passende_datei is not None:
+
+        if passende_datei:
             break
 
+
     if passende_datei is None:
-        print(f"Kein 9:16-Video gefunden für: {suchbegriff}")
+        print("Kein neues 9:16 Video gefunden.")
         continue
+
 
     filename = f'{video["id"]}.mp4'
 
-    if filename in processed:
-        print(filename, "bereits verarbeitet.")
-        continue
 
     mp4 = DOWNLOADS / filename
 
     print("Download:", filename)
+
 
     try:
         lade_video(
@@ -154,16 +170,17 @@ for _ in range(ANZAHL):
         )
 
     except Exception as e:
-        print("Download fehlgeschlagen:", e)
+        print("Downloadfehler:", e)
         continue
 
 
-    # nächste freie Nummer finden
+
     nummern = [
         int(f.stem)
         for f in OUTPUT.glob("*.raw")
         if f.stem.isdigit()
     ]
+
 
     nummer = max(nummern) + 1 if nummern else 1
 
@@ -174,19 +191,22 @@ for _ in range(ANZAHL):
 
     print("Konvertiere:", raw.name)
 
+
     try:
         convert(mp4, raw)
 
     except Exception as e:
-        print("Konvertierung fehlgeschlagen:", e)
+        print("FFmpeg Fehler:", e)
         continue
+
 
 
     print("Upload:", identifier)
 
-    working = False
 
-    while not working:
+    uploaded = False
+
+    while not uploaded:
 
         try:
 
@@ -214,7 +234,13 @@ for _ in range(ANZAHL):
                 )
             )
 
-            working = True
+
+            uploaded = True
+            erfolgreich += 1
+
+            print(
+                f"Fortschritt: {erfolgreich}/{ANZAHL}"
+            )
 
 
         except Exception as e:
@@ -222,5 +248,4 @@ for _ in range(ANZAHL):
             print("Upload fehlgeschlagen:", e)
 
 
-print("Fertig.")
 print("Fertig.")
